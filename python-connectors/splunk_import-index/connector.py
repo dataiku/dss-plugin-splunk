@@ -1,7 +1,11 @@
 from six.moves import xrange
 from dataiku.connector import Connector
 from splunklib.binding import connect
-import json, re
+import json, re, logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO,
+                    format='splunk plugin %(levelname)s - %(message)s')
 
 class SplunkIndexConnector(Connector):
     DEFAULT_SPLUNK_PORT = "8089"
@@ -10,10 +14,13 @@ class SplunkIndexConnector(Connector):
 
     def __init__(self, config, plugin_config):
         Connector.__init__(self, config, plugin_config)
-        self.splunk_instance = config.get('splunk_login')['splunk_instance']
-        self.parse_url()
-        self.splunk_username = config.get('splunk_login')['splunk_username']
-        self.splunk_password = config.get('splunk_login')['splunk_password']
+        try:
+            self.splunk_instance = config.get('splunk_login')['splunk_instance']
+            self.parse_url()
+            self.splunk_username = config.get('splunk_login')['splunk_username']
+            self.splunk_password = config.get('splunk_login')['splunk_password']
+        except Exception as err:
+            raise Exception("The Splunk instance URL or login details are not filled in. ({})".format(err))
         self.index_name = config.get('index_name')
         self.search_string = config.get('search_string')
         self.earliest_time = config.get('earliest_time')
@@ -22,7 +29,9 @@ class SplunkIndexConnector(Connector):
             self.earliest_time = None
         if len(self.latest_time) == 0:
             self.latest_time = None
-        print('ALX:init:earliest_time={}, latest_time={}'.format(self.earliest_time, self.latest_time))
+        logger.info('init:splunk_instance={}, index_name={}, search_string="{}", earliest_time={}, latest_time={}'.format(
+            self.splunk_instance, self.index_name, self.search_string, self.earliest_time, self.latest_time
+        ))
         self.client = connect(
             host = self.splunk_host,
             port = self.splunk_port,
@@ -64,7 +73,7 @@ class SplunkIndexConnector(Connector):
             content = splunk_response.body.read()
             if len(content) == 0:
                 break
-            for sample in content.split("\n"):
+            for sample in content.decode().split("\n"):
                 if sample == "":
                     continue
                 json_sample = json.loads(sample)

@@ -33,7 +33,7 @@
             "name": "earliest_time",
             "label": "Earliest time",
             "type": "STRING",
-            "description": "YYYY-MM-DD format",
+            "description": "YYYY-MM-DD'T'hh:mm:ss.SSS format",
             "defaultValue": "",
             "mandatory": false
         },
@@ -41,7 +41,7 @@
             "name": "latest_time",
             "label": "Latest time",
             "type": "STRING",
-            "description": "YYYY-MM-DD format",
+            "description": "YYYY-MM-DD'T'hh:mm:ss.SSS format",
             "defaultValue": "",
             "mandatory": false
         }
