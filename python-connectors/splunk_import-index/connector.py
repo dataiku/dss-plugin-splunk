@@ -57,7 +57,11 @@ class SplunkIndexConnector(Connector):
                             partition_id=None, records_limit = -1):
 
         args = {
-            'search':"search {} index={}".format(self.search_string, self.index_name), 
+            'search':"search {} index={}{}".format(
+                self.search_string,
+                self.index_name,
+                self.get_records_limit(records_limit)
+            ),
             'output_mode':"json",
             'timeout':60,
             'time_format':self.ISO_8601_TIME_FORMAT,
@@ -82,6 +86,11 @@ class SplunkIndexConnector(Connector):
                 else:
                     break
 
+    def get_records_limit(self, records_limit):
+        if int(records_limit) > 0:
+            return " | head {}".format(records_limit)
+        else:
+            return ""
 
     def get_writer(self, dataset_schema=None, dataset_partitioning=None,
                          partition_id=None):
