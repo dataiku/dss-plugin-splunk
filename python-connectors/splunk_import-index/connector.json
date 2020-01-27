@@ -14,6 +14,14 @@
             "parameterSetId": "splunk_login"
         },
         {
+            "name": "splunk_app",
+            "label": "Splunk App",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "",
+            "mandatory": false
+        },
+        {
             "name": "search_string",
             "label": "Search string",
             "type": "STRING",

@@ -1,6 +1,7 @@
 from six.moves import xrange
 from dataiku.connector import Connector
 from splunklib.binding import connect
+
 import json, re, logging
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ class SplunkIndexConnector(Connector):
             self.splunk_password = config.get('splunk_login')['splunk_password']
         except Exception as err:
             raise Exception("The Splunk instance URL or login details are not filled in. ({})".format(err))
+        self.splunk_app = config.get('splunk_app')
         self.index_name = config.get('index_name')
         self.search_string = config.get('search_string')
         self.earliest_time = config.get('earliest_time')
@@ -32,12 +34,18 @@ class SplunkIndexConnector(Connector):
         logger.info('init:splunk_instance={}, index_name={}, search_string="{}", earliest_time={}, latest_time={}'.format(
             self.splunk_instance, self.index_name, self.search_string, self.earliest_time, self.latest_time
         ))
-        self.client = connect(
-            host = self.splunk_host,
-            port = self.splunk_port,
-            username =self.splunk_username, 
-            password = self.splunk_password
-        )
+
+        args = {
+            "host" : self.splunk_host,
+            "port" : self.splunk_port,
+            "username" : self.splunk_username, 
+            "password" : self.splunk_password
+        }
+
+        if not self.splunk_app == "":
+            args["app"] = self.splunk_app
+
+        self.client = connect( **args )
 
     def parse_url(self):
         regex = '(?:http.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
