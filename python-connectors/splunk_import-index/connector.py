@@ -1,12 +1,14 @@
-from six.moves import xrange
 from dataiku.connector import Connector
 from splunklib.binding import connect
 
-import json, re, logging
+import json
+import re
+import logging
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format='splunk plugin %(levelname)s - %(message)s')
+
 
 class SplunkIndexConnector(Connector):
     DEFAULT_SPLUNK_PORT = "8089"
@@ -36,25 +38,24 @@ class SplunkIndexConnector(Connector):
         ))
 
         args = {
-            "host" : self.splunk_host,
-            "port" : self.splunk_port,
-            "username" : self.splunk_username, 
-            "password" : self.splunk_password
+            "host": self.splunk_host,
+            "port": self.splunk_port,
+            "username": self.splunk_username,
+            "password": self.splunk_password
         }
 
         if not self.splunk_app == "":
             args["app"] = self.splunk_app
 
-        self.client = connect( **args )
+        self.client = connect(**args)
 
     def parse_url(self):
         regex = '(?:http.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
         groups = re.search(regex, self.splunk_instance)
         self.splunk_port = groups.group('port')
-        if self.splunk_port is "" or self.splunk_port is None or len(self.splunk_port)==0:
+        if self.splunk_port == "" or self.splunk_port is None:
             self.splunk_port = self.DEFAULT_SPLUNK_PORT
         self.splunk_host = groups.group('host')
-
 
     def get_read_schema(self):
         # In this example, we don't specify a schema here, so DSS will infer the schema
@@ -62,18 +63,18 @@ class SplunkIndexConnector(Connector):
         return None
 
     def generate_rows(self, dataset_schema=None, dataset_partitioning=None,
-                            partition_id=None, records_limit = -1):
+                      partition_id=None, records_limit=-1):
 
         args = {
-            'search':"search {} index={}{}".format(
+            'search': "search {} index={}{}".format(
                 self.search_string,
                 self.index_name,
                 self.get_records_limit(records_limit)
             ),
-            'output_mode':"json",
-            'timeout':60,
-            'time_format':self.ISO_8601_TIME_FORMAT,
-            'count':0
+            'output_mode': "json",
+            'timeout': 60,
+            'time_format': self.ISO_8601_TIME_FORMAT,
+            'count': 0
         }
         if self.earliest_time is not None:
             args['earliest_time'] = self.earliest_time
@@ -101,7 +102,7 @@ class SplunkIndexConnector(Connector):
             return ""
 
     def get_writer(self, dataset_schema=None, dataset_partitioning=None,
-                         partition_id=None):
+                   partition_id=None):
         """
         Returns a writer object to write in the dataset (or in a partition).
 
@@ -111,19 +112,16 @@ class SplunkIndexConnector(Connector):
         """
         raise Exception("Unimplemented")
 
-
     def get_partitioning(self):
         """
         Return the partitioning schema that the connector defines.
         """
         raise Exception("Unimplemented")
 
-
     def list_partitions(self, partitioning):
         """Return the list of partitions for the partitioning scheme
         passed as parameter"""
         return []
-
 
     def partition_exists(self, partitioning, partition_id):
         """Return whether the partition passed as parameter exists
@@ -133,7 +131,6 @@ class SplunkIndexConnector(Connector):
         """
         raise Exception("unimplemented")
 
-
     def get_records_count(self, partitioning=None, partition_id=None):
         """
         Returns the count of records for the dataset (or a partition).
@@ -142,18 +139,3 @@ class SplunkIndexConnector(Connector):
         in the connector definition
         """
         raise Exception("unimplemented")
-
-
-class SplunkDatasetWriter(object):
-    def __init__(self):
-        pass
-
-    def write_row(self, row):
-        """
-        Row is a tuple with N + 1 elements matching the schema passed to get_writer.
-        The last element is a dict of columns not found in the schema
-        """
-        raise Exception("unimplemented")
-
-    def close(self):
-        pass
