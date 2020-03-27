@@ -1,6 +1,6 @@
 {
     "meta" : {
-        "label": "Splunk index",
+        "label": "Search Splunk index",
         "description": "Search your Splunk indexes",
         "icon": "icon-chevron-right"
     },

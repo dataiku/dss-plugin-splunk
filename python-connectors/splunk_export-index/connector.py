@@ -1,5 +1,6 @@
 from dataiku.connector import Connector
 from splunklib.binding import connect
+import splunklib.client as client
 
 import json
 import re
@@ -10,13 +11,13 @@ logging.basicConfig(level=logging.INFO,
                     format='splunk plugin %(levelname)s - %(message)s')
 
 
-class SplunkIndexConnector(Connector):
+class SplunkIndexExporterConnector(Connector):
     DEFAULT_SPLUNK_PORT = "8089"
     ISO_8601_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%Q"
     EPOCH_TIME_FORMAT = "%s.%Q"
 
     def __init__(self, config, plugin_config):
-        logger.info("SplunkIndexConnector:init")
+        logger.info("SplunkIndexExporterConnector:init")
         Connector.__init__(self, config, plugin_config)
         try:
             self.splunk_instance = config.get('splunk_login')['splunk_instance']
@@ -27,13 +28,13 @@ class SplunkIndexConnector(Connector):
             raise Exception("The Splunk instance URL or login details are not filled in. ({})".format(err))
         self.splunk_app = config.get('splunk_app')
         self.index_name = config.get('index_name')
-        self.search_string = config.get('search_string')
-        self.earliest_time = config.get('earliest_time')
-        self.latest_time = config.get('latest_time')
-        if len(self.earliest_time) == 0:
-            self.earliest_time = None
-        if len(self.latest_time) == 0:
-            self.latest_time = None
+        self.search_string = ""
+        self.splunk_sourcetype = config.get('splunk_sourcetype')
+        self.event_encapsulate = config.get('event_encapsulate')
+        self.preserve_splunk_columns = config.get('preserve_splunk_columns')
+        self.overwrite_existing_index = config.get('overwrite_existing_index', False)
+        self.earliest_time = None
+        self.latest_time = None
         logger.info('init:splunk_instance={}, index_name={}, search_string="{}", earliest_time={}, latest_time={}'.format(
             self.splunk_instance, self.index_name, self.search_string, self.earliest_time, self.latest_time
         ))
@@ -49,7 +50,8 @@ class SplunkIndexConnector(Connector):
             args["app"] = self.splunk_app
 
         self.client = connect(**args)
-        logger.info("SplunkIndexConnector:Connected to Splunk")
+        logger.info("SplunkIndexExporterConnector:Connected to Splunk")
+        self.authorization_token = self.client.token
 
     def parse_url(self):
         regex = '(?:http.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
@@ -112,8 +114,8 @@ class SplunkIndexConnector(Connector):
 
         Note: the writer is responsible for clearing the partition, if relevant.
         """
-        logger.info('SplunkIndexConnector:get_writer')
-        raise Exception("Unimplemented")
+        logger.info('SplunkIndexExporterConnector:get_writer')
+        return SplunkWriter(self.config, self, dataset_schema, dataset_partitioning, partition_id)
 
     def get_partitioning(self):
         """
@@ -144,18 +146,82 @@ class SplunkIndexConnector(Connector):
         raise Exception("unimplemented")
 
 
-class CustomDatasetWriter(object):
-    def __init__(self):
-        #  Not implemented
-        pass
+class SplunkWriter(object):
+    def __init__(self, config, parent, dataset_schema, dataset_partitioning, partition_id):
+        logger.info('SplunkWriter:init')
+        self.parent = parent
+        self.config = config
+        self.authorization_token = parent.authorization_token
+        self.splunk_sourcetype = parent.splunk_sourcetype
+        self.event_encapsulate = parent.event_encapsulate
+        self.preserve_splunk_columns = parent.preserve_splunk_columns
+        self.overwrite_existing_index = parent.overwrite_existing_index
+        self.dataset_schema = dataset_schema
+        self.dataset_partitioning = dataset_partitioning
+        self.partition_id = partition_id
+        self.buffer = []
 
     def write_row(self, row):
-        """
-        Row is a tuple with N + 1 elements matching the schema passed to get_writer.
-        The last element is a dict of columns not found in the schema
-        """
-        raise Exception("unimplemented")
+        logger.info('write_row:row={}'.format(row))
+        self.buffer.append(row)
+
+    def flush(self):
+        logger.info("SplunkWriter:flush")
+        service = client.connect(
+            host=self.parent.splunk_host,
+            port=self.parent.splunk_port,
+            username=self.parent.splunk_username,
+            password=self.parent.splunk_password
+        )
+        logger.info("SplunkWriter:Connected to Splunk")
+
+        try:
+            if self.overwrite_existing_index:
+                service.indexes.delete(self.parent.index_name)
+        except Exception as Err:
+            logger.info('deleting error={}'.format(Err))
+        try:
+            myindex = service.indexes[self.parent.index_name]
+        except Exception:
+            myindex = service.indexes.create(self.parent.index_name)
+
+        splunk_socket = myindex.attach(sourcetype=self.splunk_sourcetype, host='myhost')
+
+        for row in self.buffer:
+            self._send_row(row, splunk_socket)
+        splunk_socket.close()
+
+    def _send_row(self, row, splunk_socket):
+        event = {}
+        ticket = {}
+        for value, schema in zip(row, self.dataset_schema["columns"]):
+            column_name = schema["name"]
+
+            if self.preserve_splunk_columns and self._is_splunk_column(column_name):
+                ticket[column_name] = value
+            else:
+                event[column_name] = value
+        if self.splunk_sourcetype == "_json":
+            if self.event_encapsulate:
+                ticket["event"] = event
+            else:
+                ticket = event
+            event_string = json.dumps(ticket) + '\r\n'
+        else:
+            event_string = self.event_string(event) + '\r\n'
+        # myindex.submit(event_string, sourcetype=self.splunk_sourcetype, host='local')  # _json
+        splunk_socket.send(event_string)
+
+    def event_string(self, event):
+        elements = []
+        for element in event:
+            elements.append(element + "=" + event[element])
+        return " ".join(elements)
+
+    def _is_splunk_column(self, column_name):
+        splunk_columns = ["_si", "index", "linecount", "source", "sourcetype", "host", "splunk_server",
+                          "_time", "_bkt", "_sourcetype", "_indextime", "_raw", "_serial", "_cd", "_subsecond"]
+        return column_name in splunk_columns
 
     def close(self):
-        #  Not implemented
-        pass
+        self.flush()
