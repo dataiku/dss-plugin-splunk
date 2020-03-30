@@ -27,11 +27,10 @@ class SplunkIndexExporterConnector(Connector):
         except Exception as err:
             raise Exception("The Splunk instance URL or login details are not filled in. ({})".format(err))
         self.splunk_app = config.get('splunk_app')
-        self.index_name = config.get('index_name')
+        self.index_name = config.get('index_name').lower()
         self.search_string = ""
         self.splunk_sourcetype = config.get('splunk_sourcetype')
-        self.event_encapsulate = config.get('event_encapsulate')
-        self.preserve_splunk_columns = config.get('preserve_splunk_columns')
+        self.source_host = config.get("source_host", "dss")
         self.overwrite_existing_index = config.get('overwrite_existing_index', False)
         self.earliest_time = None
         self.latest_time = None
@@ -153,8 +152,7 @@ class SplunkWriter(object):
         self.config = config
         self.authorization_token = parent.authorization_token
         self.splunk_sourcetype = parent.splunk_sourcetype
-        self.event_encapsulate = parent.event_encapsulate
-        self.preserve_splunk_columns = parent.preserve_splunk_columns
+        self.source_host = parent.source_host
         self.overwrite_existing_index = parent.overwrite_existing_index
         self.dataset_schema = dataset_schema
         self.dataset_partitioning = dataset_partitioning
@@ -185,7 +183,7 @@ class SplunkWriter(object):
         except Exception:
             myindex = service.indexes.create(self.parent.index_name)
 
-        splunk_socket = myindex.attach(sourcetype=self.splunk_sourcetype, host='myhost')
+        splunk_socket = myindex.attach(sourcetype=self.splunk_sourcetype, host=self.source_host)
 
         for row in self.buffer:
             self._send_row(row, splunk_socket)
@@ -193,35 +191,20 @@ class SplunkWriter(object):
 
     def _send_row(self, row, splunk_socket):
         event = {}
-        ticket = {}
         for value, schema in zip(row, self.dataset_schema["columns"]):
             column_name = schema["name"]
-
-            if self.preserve_splunk_columns and self._is_splunk_column(column_name):
-                ticket[column_name] = value
-            else:
-                event[column_name] = value
+            event[column_name] = value
         if self.splunk_sourcetype == "_json":
-            if self.event_encapsulate:
-                ticket["event"] = event
-            else:
-                ticket = event
-            event_string = json.dumps(ticket) + '\r\n'
+            event_string = json.dumps(event) + '\r\n'
         else:
-            event_string = self.event_string(event) + '\r\n'
-        # myindex.submit(event_string, sourcetype=self.splunk_sourcetype, host='local')  # _json
-        splunk_socket.send(event_string)
+            event_string = self._generate_event_string(event) + '\r\n'
+        splunk_socket.send(event_string.encode())
 
-    def event_string(self, event):
+    def _generate_event_string(self, event):
         elements = []
         for element in event:
-            elements.append(element + "=" + event[element])
+            elements.append(element + "=" + str(event[element]))
         return " ".join(elements)
-
-    def _is_splunk_column(self, column_name):
-        splunk_columns = ["_si", "index", "linecount", "source", "sourcetype", "host", "splunk_server",
-                          "_time", "_bkt", "_sourcetype", "_indextime", "_raw", "_serial", "_cd", "_subsecond"]
-        return column_name in splunk_columns
 
     def close(self):
         self.flush()

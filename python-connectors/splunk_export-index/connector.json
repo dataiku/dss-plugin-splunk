@@ -30,6 +30,14 @@
             "mandatory": false
         },
         {
+            "name": "source_host",
+            "label": "Source host",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "dss",
+            "mandatory": false
+        },
+        {
             "name": "overwrite_existing_index",
             "label": "Overwrite existing index",
             "type": "BOOLEAN",
@@ -46,22 +54,6 @@
             ],
             "mandatory": true,
             "defaultValue": "log2metrics_keyvalue"
-        },
-        {
-            "name": "preserve_splunk_columns",
-            "label": "Preserve Splunk columns",
-            "type": "BOOLEAN",
-            "description": "",
-            "defaultValue": false,
-            "visibilityCondition" : "model.splunk_sourcetype == '_json'"
-        },
-        {
-            "name": "event_encapsulate",
-            "label": "Encapsulate in event dict",
-            "type": "BOOLEAN",
-            "description": "",
-            "defaultValue": false,
-            "visibilityCondition" : "model.splunk_sourcetype == '_json'"
         }
     ]
 }
