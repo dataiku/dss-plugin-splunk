@@ -99,6 +99,7 @@ class SplunkIndexExporter(Exporter):
         for value, schema in zip(row, self.dataset_schema["columns"]):
             column_name = schema["name"]
             event[column_name] = value
+        event.pop("_raw", None)
         if self.splunk_sourcetype == "_json":
             event_string = json.dumps(event) + '\r\n'
         else:
@@ -108,7 +109,7 @@ class SplunkIndexExporter(Exporter):
     def _generate_event_string(self, event):
         elements = []
         for element in event:
-            elements.append(element + "=" + str(event[element]))
+            elements.append(element + "=" + str(json.dumps(event[element])))
         return " ".join(elements)
 
     def close(self):

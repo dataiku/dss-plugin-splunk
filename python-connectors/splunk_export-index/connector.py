@@ -161,7 +161,27 @@ class SplunkWriter(object):
 
     def write_row(self, row):
         logger.info('write_row:row={}'.format(row))
-        self.buffer.append(row)
+        typed_row = []
+        for element_value, schema_details in zip(row, self.dataset_schema["columns"]):
+            element_type = schema_details["type"]
+            if element_type in ["bigint", "int", "tinyint", "smallint"]:
+                if element_value == "":
+                    typed_row.append(None)
+                else:
+                    typed_row.append(int(element_value))
+            elif element_type in ["float", "double"]:
+                if element_value == "":
+                    typed_row.append(None)
+                else:
+                    typed_row.append(float(element_value))
+            elif element_type in ["boolean"]:
+                if element_value == "Nan":
+                    typed_row.append(None)
+                else:
+                    typed_row.append(element_value == "True")
+            else:
+                typed_row.append(str(element_value))
+        self.buffer.append(typed_row)
 
     def flush(self):
         logger.info("SplunkWriter:flush")
@@ -194,6 +214,7 @@ class SplunkWriter(object):
         for value, schema in zip(row, self.dataset_schema["columns"]):
             column_name = schema["name"]
             event[column_name] = value
+        event.pop("_raw", None)
         if self.splunk_sourcetype == "_json":
             event_string = json.dumps(event) + '\r\n'
         else:
@@ -203,7 +224,7 @@ class SplunkWriter(object):
     def _generate_event_string(self, event):
         elements = []
         for element in event:
-            elements.append(element + "=" + str(event[element]))
+            elements.append(element + "=" + str(json.dumps(event[element])))
         return " ".join(elements)
 
     def close(self):
