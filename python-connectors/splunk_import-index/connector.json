@@ -1,0 +1,57 @@
+{
+    "meta" : {
+        "label": "Search Splunk index",
+        "description": "Search your Splunk indexes",
+        "icon": "icon-chevron-right"
+    },
+    "readable": true,
+    "writable": false,
+    "params": [
+        {
+            "name": "splunk_login",
+            "label": "Splunk login",
+            "type": "PRESET",
+            "parameterSetId": "splunk_login"
+        },
+        {
+            "name": "splunk_app",
+            "label": "Splunk App",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "",
+            "mandatory": false
+        },
+        {
+            "name": "search_string",
+            "label": "Search string",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "*",
+            "mandatory": false
+        },
+        {
+            "name": "index_name",
+            "label": "Index name",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "*",
+            "mandatory": false
+        },
+        {
+            "name": "earliest_time",
+            "label": "Earliest time",
+            "type": "STRING",
+            "description": "YYYY-MM-DD'T'hh:mm:ss.SSS format",
+            "defaultValue": "",
+            "mandatory": false
+        },
+        {
+            "name": "latest_time",
+            "label": "Latest time",
+            "type": "STRING",
+            "description": "YYYY-MM-DD'T'hh:mm:ss.SSS format",
+            "defaultValue": "",
+            "mandatory": false
+        }
+    ]
+}

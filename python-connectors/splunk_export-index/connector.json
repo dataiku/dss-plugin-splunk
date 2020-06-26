@@ -1,0 +1,60 @@
+{
+    "meta" : {
+        "label": "Export Splunk index",
+        "description": "Export to your Splunk indexes",
+        "icon": "icon-chevron-right"
+    },
+    "readable": false,
+    "writable": true,
+    "params": [
+        {
+            "name": "splunk_login",
+            "label": "Splunk login",
+            "type": "PRESET",
+            "parameterSetId": "splunk_login"
+        },
+        {
+            "name": "splunk_app",
+            "label": "Splunk App",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "",
+            "mandatory": false
+        },
+        {
+            "name": "index_name",
+            "label": "Index name",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "DSS_${projectKey}",
+            "mandatory": false
+        },
+        {
+            "name": "source_host",
+            "label": "Source host",
+            "type": "STRING",
+            "description": "",
+            "defaultValue": "dss",
+            "mandatory": false
+        },
+        {
+            "name": "overwrite_existing_index",
+            "label": "Overwrite existing index",
+            "type": "BOOLEAN",
+            "description": "",
+            "defaultValue": false
+        },
+        {
+            "type": "SELECT",
+            "name": "splunk_sourcetype",
+            "label": "Destination type",
+            "selectChoices": [
+                { "value": "_json", "label": "JSON"},
+                { "value": "log2metrics_keyvalue", "label": "<key>=<value>"} 
+            ],
+            "mandatory": true,
+            "defaultValue": "log2metrics_keyvalue"
+        }
+    ]
+}
+                            

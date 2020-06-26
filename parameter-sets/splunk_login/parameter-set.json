@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "label": "Splunk logins",
+        "description": "",
+        "icon": "icon-chevron-right"
+    },
+    "defaultDefinableInline": true,
+    "defaultDefinableAtProjectLevel": true,
+    "pluginParams": [],
+    "params": [
+        {
+            "name": "splunk_instance",
+            "label": "Instance",
+            "type": "STRING",
+            "description": "Your instance URL",
+            "mandatory": true
+        },
+        {
+            "name": "splunk_username",
+            "label": "Username",
+            "type": "STRING",
+            "description": "Your Splunk user name",
+            "mandatory": true
+        },
+        {
+            "name": "splunk_password",
+            "label": "Password",
+            "type": "PASSWORD",
+            "description": "Your Splunk password",
+            "mandatory": true
+        }
+    ]
+}
