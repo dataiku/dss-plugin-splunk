@@ -7,7 +7,7 @@
         "author": "Dataiku (Alex Bourret)",
         "icon": "icon-chevron-right",
         "tags": ["Connector","Cloud"],
-        "url": "https://www.dataiku.com/dss/plugins/info/splunk.html",
+        "url": "https://www.dataiku.com/product/plugins/splunk/",
         "licenseInfo": "Apache Software License"
     }
 }
